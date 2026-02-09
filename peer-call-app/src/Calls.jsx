@@ -226,6 +226,7 @@ export default function Call() {
 
   const myVideo = useRef(null);
   const remoteVideo = useRef(null);
+  const myAudio = useRef(null); // For local mic monitoring
   const peerRef = useRef(null);
   const streamRef = useRef(null);
   const activeCallRef = useRef(null);
@@ -537,9 +538,17 @@ export default function Call() {
     // if (backgroundBlur && callType === "video") stream = await enhanceVideoStream(stream);
     
     if (stream.getVideoTracks().length > 0 && myVideo.current) myVideo.current.srcObject = stream;
+    // For audio-only calls, attach local stream to audio element for monitoring
+    if (stream.getAudioTracks().length > 0 && myAudio.current) {
+      myAudio.current.srcObject = stream;
+      myAudio.current.muted = false;
+      myAudio.current.play().catch(() => {});
+    }
     const call = peerRef.current.call(remoteId, stream);
     call.on("stream", (remoteStream) => {
       remoteVideo.current.srcObject = remoteStream;
+      remoteVideo.current.muted = false;
+      remoteVideo.current.play && remoteVideo.current.play().catch(() => {});
       setCallStatus("Connected to " + remoteId);
       activeCallRef.current = call;
       addCallHistory({
@@ -608,7 +617,11 @@ export default function Call() {
       if (stream.getVideoTracks().length > 0 && myVideo.current) myVideo.current.srcObject = stream;
       incomingCall.answer(stream);
       incomingCall.on("stream", (remoteStream) => {
-        if (remoteVideo.current) remoteVideo.current.srcObject = remoteStream;
+        if (remoteVideo.current) {
+          remoteVideo.current.srcObject = remoteStream;
+          remoteVideo.current.muted = false;
+          remoteVideo.current.play && remoteVideo.current.play().catch(() => {});
+        }
         setCallStatus("Connected to " + incomingCall.peer);
         activeCallRef.current = incomingCall;
         addCallHistory({
@@ -629,6 +642,7 @@ export default function Call() {
         activeCallRef.current = null;
         if (remoteVideo.current) remoteVideo.current.srcObject = null;
         if (myVideo.current) myVideo.current.srcObject = null;
+        if (myAudio.current) myAudio.current.srcObject = null;
       });
       incomingCall.on("error", () => {
         setCallStatus("Call error");
@@ -816,6 +830,8 @@ export default function Call() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30">
+      {/* Local audio element for mic monitoring (hidden) */}
+      <audio ref={myAudio} autoPlay style={{ display: "none" }} />
       {/* Incoming Call Modal */}
       {incomingCall && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
