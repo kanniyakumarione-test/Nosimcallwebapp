@@ -369,9 +369,11 @@ export default function Call() {
 
   // Helper to add call event
   const addCallHistory = (event) => {
-    const updated = [...callHistory, event];
-    setCallHistory(updated);
-    localStorage.setItem("peerCallHistory", JSON.stringify(updated));
+    setCallHistory(prev => {
+      const updated = [...prev, event];
+      localStorage.setItem("peerCallHistory", JSON.stringify(updated));
+      return updated;
+    });
   };
 
   // Logout handler
@@ -423,6 +425,17 @@ export default function Call() {
               if (data && data.type === "declined") {
                 setCallStatus("Call was declined by remote peer");
               }
+              if (data && data.type === "end") {
+                setCallStatus("Call ended by remote peer");
+                if (activeCallRef.current) activeCallRef.current.close();
+                activeCallRef.current = null;
+                addCallHistory({
+                  peer: conn.peer,
+                  type: "incoming",
+                  status: "ended",
+                  time: new Date().toLocaleString(),
+                });
+              }
             });
             setDataConn(conn);
           });
@@ -469,6 +482,17 @@ export default function Call() {
           peer: remoteId,
           type: callType,
           status: "declined",
+          time: new Date().toLocaleString(),
+        });
+      }
+      if (data && data.type === "end") {
+        setCallStatus("Call ended by remote peer");
+        if (activeCallRef.current) activeCallRef.current.close();
+        activeCallRef.current = null;
+        addCallHistory({
+          peer: remoteId,
+          type: callType,
+          status: "ended",
           time: new Date().toLocaleString(),
         });
       }
@@ -591,6 +615,11 @@ export default function Call() {
   // End call handler
   const endCall = () => {
     if (activeCallRef.current) {
+      if (dataConn) {
+        try {
+          dataConn.send({ type: "end" });
+        } catch (e) { console.error(e); }
+      }
       activeCallRef.current.close();
       setCallStatus("Call ended by you");
       activeCallRef.current = null;
@@ -630,6 +659,7 @@ export default function Call() {
     // Handler for random call
     const handleRandomCall = async () => {
       try {
+        // Request permissions early
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         stream.getTracks().forEach(track => track.stop());
       } catch (err) {
@@ -666,6 +696,17 @@ export default function Call() {
         conn.on("data", (data) => {
           if (data && data.type === "declined") {
             setCallStatus("Call was declined by remote peer");
+          }
+          if (data && data.type === "end") {
+            setCallStatus("Call ended by remote peer");
+            if (activeCallRef.current) activeCallRef.current.close();
+            activeCallRef.current = null;
+            addCallHistory({
+              peer: conn.peer,
+              type: "incoming",
+              status: "ended",
+              time: new Date().toLocaleString(),
+            });
           }
         });
         setDataConn(conn);
@@ -1196,9 +1237,9 @@ export default function Call() {
 
             {/* Video Area */}
             <div className="lg:col-span-2">
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-xl min-h-[400px] flex flex-col">
-                    {callType === "video" ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-xl min-h-[400px] flex flex-col relative">
+                    {/* Always render video container (hidden if audio-only) to ensure refs exist and audio plays */}
+                    <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 h-full ${callType === "audio" ? "hidden" : ""}`}>
                             {/* Local Video */}
                             <div className="relative bg-black rounded-xl overflow-hidden aspect-video border border-slate-800 shadow-inner group">
                                 <video ref={myVideo} autoPlay muted className="w-full h-full object-cover" />
@@ -1224,8 +1265,9 @@ export default function Call() {
                                 )}
                             </div>
                         </div>
-                    ) : (
-                        <div className="flex-1 flex flex-col items-center justify-center bg-slate-950/50 rounded-xl border border-slate-800 p-8 text-center">
+                    
+                    {callType === "audio" && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 rounded-2xl z-10 p-8 text-center">
                             <div className="w-24 h-24 bg-indigo-500/10 rounded-full flex items-center justify-center mb-6 animate-pulse">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
                             </div>
