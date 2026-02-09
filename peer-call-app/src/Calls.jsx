@@ -338,6 +338,22 @@ export default function Call() {
     // eslint-disable-next-line
   }, [remoteId, registered]);
 
+  // Send heartbeat to backend to mark self as online
+  useEffect(() => {
+    if (!myId) return;
+    const API_URL = import.meta.env.VITE_BACKEND_URL || `http://${window.location.hostname}:5000`;
+    const ping = () => {
+      fetch(`${API_URL}/presence/ping`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ peerId: myId }),
+      }).catch(() => {});
+    };
+    ping();
+    const interval = setInterval(ping, 15000); // Ping every 15s
+    return () => clearInterval(interval);
+  }, [myId]);
+
   // Helper to add call event
   const addCallHistory = (event) => {
     const updated = [...callHistory, event];
@@ -370,7 +386,7 @@ export default function Call() {
           const isSecure = window.location.protocol === 'https:';
           const peer = new Peer(data.peerId, {
             host: import.meta.env.VITE_PEER_HOST || window.location.hostname,
-            port: Number(import.meta.env.VITE_PEER_PORT) || (isSecure ? 443 : 5000),
+            port: isSecure ? 443 : (Number(import.meta.env.VITE_PEER_PORT) || 5000),
             path: import.meta.env.VITE_PEER_PATH || "/peerjs",
             secure: isSecure,
           });
@@ -565,7 +581,7 @@ export default function Call() {
       const isSecure = window.location.protocol === 'https:';
       const peer = new Peer(randomId, {
         host: import.meta.env.VITE_PEER_HOST || window.location.hostname,
-        port: Number(import.meta.env.VITE_PEER_PORT) || (isSecure ? 443 : 5000),
+        port: isSecure ? 443 : (Number(import.meta.env.VITE_PEER_PORT) || 5000),
         path: import.meta.env.VITE_PEER_PATH || "/peerjs",
         secure: isSecure,
       });

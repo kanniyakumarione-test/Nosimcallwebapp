@@ -99,6 +99,7 @@ app.post("/register", async (req, res) => {
 // ✅ Mount PeerJS CORRECTLY
 const peerServer = ExpressPeerServer(server, {
   debug: true,
+  allow_discovery: true,
 });
 
 app.use("/peerjs", peerServer);
