@@ -551,14 +551,6 @@ export default function Call() {
     setIncomingCall(null);
   };
 
-  const saveSettings = () => {
-    if (tempUsername) {
-      setUsername(tempUsername);
-      localStorage.setItem("peerUsername", tempUsername);
-    }
-    setSettingsOpen(false);
-  };
-
   if (!registered) {
     // Handler for random call
     const handleRandomCall = async () => {
