@@ -1,4 +1,4 @@
-import Call from "./components/Call";
+import Call from "./call";
 
 export default function App() {
   return <Call />;
