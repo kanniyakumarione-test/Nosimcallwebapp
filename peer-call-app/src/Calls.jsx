@@ -318,13 +318,14 @@ export default function Call() {
 
   // Check remote peer status
   const checkRemoteStatus = async () => {
-    if (!remoteId) {
+    if (!remoteId || !peerRef.current) {
       setRemoteStatus("");
       return;
     }
     try {
       // Try to connect (without sending call)
       const conn = peerRef.current.connect(remoteId);
+      if (!conn) return;
       conn.on("open", () => {
         setRemoteStatus("online");
         conn.close();
@@ -377,6 +378,7 @@ export default function Call() {
             host: "localhost",
             port: 5000,
             path: "/peerjs",
+            secure: false,
           });
           peerRef.current = peer;
           peer.on("open", (id) => {
@@ -551,6 +553,14 @@ export default function Call() {
     setIncomingCall(null);
   };
 
+  const saveSettings = () => {
+    if (tempUsername) {
+      setUsername(tempUsername);
+      localStorage.setItem("peerUsername", tempUsername);
+    }
+    setSettingsOpen(false);
+  };
+
   if (!registered) {
     // Handler for random call
     const handleRandomCall = async () => {
@@ -562,6 +572,7 @@ export default function Call() {
         host: "localhost",
         port: 5000,
         path: "/peerjs",
+        secure: false,
       });
       peerRef.current = peer;
       peer.on("open", (id) => {
