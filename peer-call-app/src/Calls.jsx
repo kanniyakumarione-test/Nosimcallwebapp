@@ -486,56 +486,62 @@ export default function Call() {
   };
 
   const answerCall = async () => {
-    if (!incomingCall) return;
-    setCallStatus("Answering call...");
-    addCallHistory({
-      peer: incomingCall.peer,
-      type: callType,
-      status: "incoming",
-      time: new Date().toLocaleString(),
-    });
-    // Detect call type from incomingCall options if possible, fallback to video
-    const mediaOptions = callType === "video" ? { video: true, audio: true } : { video: false, audio: true };
-    const stream =
-      streamRef.current ||
-      (await navigator.mediaDevices.getUserMedia(mediaOptions));
-    streamRef.current = stream;
-    if (callType === "video") myVideo.current.srcObject = stream;
-    incomingCall.answer(stream);
-    incomingCall.on("stream", (remoteStream) => {
-      remoteVideo.current.srcObject = remoteStream;
-      setCallStatus("Connected to " + incomingCall.peer);
-      activeCallRef.current = incomingCall;
+    try {
+      if (!incomingCall) return;
+      setCallStatus("Answering call...");
       addCallHistory({
         peer: incomingCall.peer,
         type: callType,
-        status: "connected",
+        status: "incoming",
         time: new Date().toLocaleString(),
       });
-    });
-    incomingCall.on("close", () => {
-      setCallStatus("Call ended");
-      addCallHistory({
-        peer: incomingCall.peer,
-        type: callType,
-        status: "ended",
-        time: new Date().toLocaleString(),
+      // Detect call type from incomingCall options if possible, fallback to video
+      const mediaOptions = callType === "video" ? { video: true, audio: true } : { video: false, audio: true };
+      const stream =
+        streamRef.current ||
+        (await navigator.mediaDevices.getUserMedia(mediaOptions));
+      streamRef.current = stream;
+      if (callType === "video" && myVideo.current) myVideo.current.srcObject = stream;
+      incomingCall.answer(stream);
+      incomingCall.on("stream", (remoteStream) => {
+        if (remoteVideo.current) remoteVideo.current.srcObject = remoteStream;
+        setCallStatus("Connected to " + incomingCall.peer);
+        activeCallRef.current = incomingCall;
+        addCallHistory({
+          peer: incomingCall.peer,
+          type: callType,
+          status: "connected",
+          time: new Date().toLocaleString(),
+        });
       });
-      activeCallRef.current = null;
-    });
-    incomingCall.on("error", () => {
-      setCallStatus("Call error");
-      addCallHistory({
-        peer: incomingCall.peer,
-        type: callType,
-        status: "error",
-        time: new Date().toLocaleString(),
+      incomingCall.on("close", () => {
+        setCallStatus("Call ended");
+        addCallHistory({
+          peer: incomingCall.peer,
+          type: callType,
+          status: "ended",
+          time: new Date().toLocaleString(),
+        });
+        activeCallRef.current = null;
       });
-      activeCallRef.current = null;
-    });
-    setIncomingCall(null);
+      incomingCall.on("error", () => {
+        setCallStatus("Call error");
+        addCallHistory({
+          peer: incomingCall.peer,
+          type: callType,
+          status: "error",
+          time: new Date().toLocaleString(),
+        });
+        activeCallRef.current = null;
+      });
+      setIncomingCall(null);
       // Store call for ending
       activeCallRef.current = incomingCall;
+    } catch (err) {
+      console.error("Failed to answer call:", err);
+      setCallStatus("Error answering call: " + err.message);
+      setIncomingCall(null);
+    }
   };
   // End call handler
   const endCall = () => {
@@ -557,7 +563,11 @@ export default function Call() {
     });
     // Send 'declined' signal to caller
     if (dataConn) {
-      dataConn.send({ type: "declined" });
+      try {
+        dataConn.send({ type: "declined" });
+      } catch (e) {
+        console.error("Failed to send decline message", e);
+      }
     }
     incomingCall.close();
     setIncomingCall(null);
