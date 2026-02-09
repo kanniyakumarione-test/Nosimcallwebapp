@@ -365,7 +365,8 @@ export default function Call() {
   useEffect(() => {
     if (!registered) return;
     setLoading(true);
-    fetch("http://localhost:5000/register", {
+    const API_URL = import.meta.env.VITE_BACKEND_URL || `http://${window.location.hostname}:5000`;
+    fetch(`${API_URL}/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username }),
@@ -375,8 +376,8 @@ export default function Call() {
         if (data.peerId) {
           setMyId(data.peerId);
           const peer = new Peer(data.peerId, {
-            host: "localhost",
-            port: 5000,
+            host: import.meta.env.VITE_PEER_HOST || window.location.hostname,
+            port: import.meta.env.VITE_PEER_PORT || 5000,
             path: "/peerjs",
             secure: false,
           });
@@ -569,8 +570,8 @@ export default function Call() {
       setMyId(randomId);
       // Create Peer instance
       const peer = new Peer(randomId, {
-        host: "localhost",
-        port: 5000,
+        host: import.meta.env.VITE_PEER_HOST || window.location.hostname,
+        port: import.meta.env.VITE_PEER_PORT || 5000,
         path: "/peerjs",
         secure: false,
       });
