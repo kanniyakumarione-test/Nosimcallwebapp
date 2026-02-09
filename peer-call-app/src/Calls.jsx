@@ -367,11 +367,12 @@ export default function Call() {
       .then(data => {
         if (data.peerId) {
           setMyId(data.peerId);
+          const isSecure = window.location.protocol === 'https:';
           const peer = new Peer(data.peerId, {
             host: import.meta.env.VITE_PEER_HOST || window.location.hostname,
-            port: import.meta.env.VITE_PEER_PORT || 5000,
+            port: Number(import.meta.env.VITE_PEER_PORT) || (isSecure ? 443 : 5000),
             path: import.meta.env.VITE_PEER_PATH || "/peerjs",
-            secure: true,
+            secure: isSecure,
           });
           peerRef.current = peer;
           peer.on("open", (id) => {
@@ -561,11 +562,12 @@ export default function Call() {
       const randomId = "random-" + Math.random().toString(36).substring(2, 10);
       setMyId(randomId);
       // Create Peer instance
+      const isSecure = window.location.protocol === 'https:';
       const peer = new Peer(randomId, {
         host: import.meta.env.VITE_PEER_HOST || window.location.hostname,
-        port: import.meta.env.VITE_PEER_PORT || 5000,
+        port: Number(import.meta.env.VITE_PEER_PORT) || (isSecure ? 443 : 5000),
         path: import.meta.env.VITE_PEER_PATH || "/peerjs",
-        secure: true,
+        secure: isSecure,
       });
       peerRef.current = peer;
       peer.on("open", (id) => {

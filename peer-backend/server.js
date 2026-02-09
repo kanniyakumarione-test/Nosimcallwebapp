@@ -6,6 +6,11 @@ const { ExpressPeerServer } = require("peer");
 const { MongoClient, ObjectId } = require("mongodb");
 
 const app = express();
+
+// ✅ Enable CORS for all routes BEFORE defining routes
+app.use(cors({ origin: "https://nosimcallwebapp-np8w.vercel.app" }));
+app.use(express.json());
+
 const server = http.createServer(app);
 // --- Presence API ---
 // In-memory presence map: { peerId: lastPingTimestamp }
@@ -27,10 +32,6 @@ app.get("/presence/online", (req, res) => {
   const isOnline = lastPing && (Date.now() - lastPing < 20000);
   return res.json({ online: !!isOnline });
 });
-
-app.use(cors());
-app.use(express.json());
-
 // In-memory store for random matchmaking (demo only, not production safe)
 let randomPeers = new Set();
 
