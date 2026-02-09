@@ -462,6 +462,8 @@ export default function Call() {
                 setCallStatus("Call ended by remote peer");
                 if (activeCallRef.current) activeCallRef.current.close();
                 activeCallRef.current = null;
+                if (remoteVideo.current) remoteVideo.current.srcObject = null;
+                if (myVideo.current) myVideo.current.srcObject = null;
                 addCallHistory({
                   peer: conn.peer,
                   type: "incoming",
@@ -625,6 +627,8 @@ export default function Call() {
           time: new Date().toLocaleString(),
         });
         activeCallRef.current = null;
+        if (remoteVideo.current) remoteVideo.current.srcObject = null;
+        if (myVideo.current) myVideo.current.srcObject = null;
       });
       incomingCall.on("error", () => {
         setCallStatus("Call error");
