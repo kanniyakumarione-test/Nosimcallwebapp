@@ -434,6 +434,24 @@ export default function Call() {
 
 
   const startCall = async () => {
+    // 1. Get Media First (Robustness for Mobile)
+    const mediaOptions = callType === "video" ? { video: true, audio: true } : { video: false, audio: true };
+    let stream = streamRef.current;
+    if (!stream || !stream.active) {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia(mediaOptions);
+        } catch (err) {
+            if (callType === "video") {
+                console.warn("Video permission failed, trying audio-only...");
+                stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+                setCallType("audio");
+            } else {
+                throw err;
+            }
+        }
+    }
+    streamRef.current = stream;
+
     setCallStatus("Calling " + remoteId + "...");
     addCallHistory({
       peer: remoteId,
@@ -455,13 +473,11 @@ export default function Call() {
         });
       }
     });
-    const mediaOptions = callType === "video" ? { video: true, audio: true } : { video: false, audio: true };
-    let stream = streamRef.current || (await navigator.mediaDevices.getUserMedia(mediaOptions));
     // Apply enhancements
     // if (noiseSuppression) stream = await enhanceAudioStream(stream);
     // if (backgroundBlur && callType === "video") stream = await enhanceVideoStream(stream);
-    streamRef.current = stream;
-    if (callType === "video") myVideo.current.srcObject = stream;
+    
+    if (stream.getVideoTracks().length > 0 && myVideo.current) myVideo.current.srcObject = stream;
     const call = peerRef.current.call(remoteId, stream);
     call.on("stream", (remoteStream) => {
       remoteVideo.current.srcObject = remoteStream;
@@ -501,6 +517,27 @@ export default function Call() {
   const answerCall = async () => {
     try {
       if (!incomingCall) return;
+      
+      // 1. Get Media Stream Immediately (Fix for Mobile Permissions)
+      const mediaOptions = callType === "video" ? { video: true, audio: true } : { video: false, audio: true };
+      let stream = streamRef.current;
+      
+      if (!stream || !stream.active) {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia(mediaOptions);
+        } catch (err) {
+            // Fallback to audio only if video fails
+            if (callType === "video") {
+                console.warn("Video permission denied, falling back to audio", err);
+                stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+                setCallType("audio");
+            } else {
+                throw err;
+            }
+        }
+      }
+      streamRef.current = stream;
+
       setCallStatus("Answering call...");
       addCallHistory({
         peer: incomingCall.peer,
@@ -508,13 +545,8 @@ export default function Call() {
         status: "incoming",
         time: new Date().toLocaleString(),
       });
-      // Detect call type from incomingCall options if possible, fallback to video
-      const mediaOptions = callType === "video" ? { video: true, audio: true } : { video: false, audio: true };
-      const stream =
-        streamRef.current ||
-        (await navigator.mediaDevices.getUserMedia(mediaOptions));
-      streamRef.current = stream;
-      if (callType === "video" && myVideo.current) myVideo.current.srcObject = stream;
+
+      if (stream.getVideoTracks().length > 0 && myVideo.current) myVideo.current.srcObject = stream;
       incomingCall.answer(stream);
       incomingCall.on("stream", (remoteStream) => {
         if (remoteVideo.current) remoteVideo.current.srcObject = remoteStream;
