@@ -180,6 +180,19 @@ export default function Call() {
     }
   }, []);
 
+  // Request media permissions on mount to ensure they are granted early
+  useEffect(() => {
+    const requestPermissions = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        stream.getTracks().forEach(track => track.stop());
+      } catch (err) {
+        console.warn("Media permissions not granted on mount:", err);
+      }
+    };
+    requestPermissions();
+  }, []);
+
   const myVideo = useRef(null);
   const remoteVideo = useRef(null);
   const peerRef = useRef(null);
@@ -584,6 +597,12 @@ export default function Call() {
   if (!registered) {
     // Handler for random call
     const handleRandomCall = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        stream.getTracks().forEach(track => track.stop());
+      } catch (err) {
+        console.warn("Permissions skipped for random call");
+      }
       // Generate random Peer ID
       const randomId = "random-" + Math.random().toString(36).substring(2, 10);
       setMyId(randomId);
@@ -651,8 +670,15 @@ export default function Call() {
             </div>
             <button
               className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3.5 rounded-xl transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              onClick={() => {
+              onClick={async () => {
               if (username) {
+                try {
+                  // Ask for permissions explicitly on user interaction
+                  const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                  stream.getTracks().forEach(track => track.stop());
+                } catch (err) {
+                  alert("Please allow camera and microphone permissions to use this app.");
+                }
                 localStorage.setItem("peerUsername", username);
                 setRegistered(true);
               }
