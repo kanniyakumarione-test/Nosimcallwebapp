@@ -1,0 +1,17 @@
+{
+  "name": "NoSimCall",
+  "short_name": "NoSimCall",
+  "description": "Secure P2P Video & Audio Call App",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#6366f1",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "mobicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
