@@ -486,7 +486,12 @@ export default function Call() {
     // 1. Get Media First (Robustness for Mobile)
     const mediaOptions = callType === "video" ? { video: true, audio: true } : { video: false, audio: true };
     let stream = streamRef.current;
-    if (!stream || !stream.active) {
+    
+    // Refresh stream if missing, inactive, or if we need video but current stream is audio-only
+    const shouldRefresh = !stream || !stream.active || (callType === "video" && stream.getVideoTracks().length === 0);
+
+    if (shouldRefresh) {
+        if (stream) stream.getTracks().forEach(t => t.stop());
         try {
             stream = await navigator.mediaDevices.getUserMedia(mediaOptions);
         } catch (err) {
@@ -585,7 +590,11 @@ export default function Call() {
       const mediaOptions = callType === "video" ? { video: true, audio: true } : { video: false, audio: true };
       let stream = streamRef.current;
       
-      if (!stream || !stream.active) {
+      // Refresh stream if missing, inactive, or if we need video but current stream is audio-only
+      const shouldRefresh = !stream || !stream.active || (callType === "video" && stream.getVideoTracks().length === 0);
+
+      if (shouldRefresh) {
+        if (stream) stream.getTracks().forEach(t => t.stop());
         try {
             stream = await navigator.mediaDevices.getUserMedia(mediaOptions);
         } catch (err) {
@@ -1286,10 +1295,10 @@ export default function Call() {
             <div className="lg:col-span-2">
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-xl min-h-[400px] flex flex-col relative">
                     {/* Always render video container (hidden if audio-only) to ensure refs exist and audio plays */}
-                    <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 h-full ${callType === "audio" ? "hidden" : ""}`}>
+                    <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 h-full ${callType === "audio" ? "opacity-0 pointer-events-none absolute inset-0" : ""}`}>
                             {/* Local Video */}
                             <div className="relative bg-black rounded-xl overflow-hidden aspect-video border border-slate-800 shadow-inner group">
-                                <video ref={myVideo} autoPlay muted className="w-full h-full object-cover" />
+                                <video ref={myVideo} autoPlay muted playsInline className="w-full h-full object-cover" />
                                 <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md text-white text-xs px-2 py-1 rounded-md border border-white/10 flex items-center gap-1.5">
                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
                                     You
@@ -1298,7 +1307,7 @@ export default function Call() {
                             
                             {/* Remote Video */}
                             <div className="relative bg-black rounded-xl overflow-hidden aspect-video border border-slate-800 shadow-inner flex items-center justify-center group">
-                                <video ref={remoteVideo} autoPlay className="w-full h-full object-cover" />
+                                <video ref={remoteVideo} autoPlay playsInline className="w-full h-full object-cover" />
                                 <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md text-white text-xs px-2 py-1 rounded-md border border-white/10 flex items-center gap-1.5">
                                     <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
                                     Remote
