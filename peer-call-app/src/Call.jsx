@@ -3,11 +3,6 @@ import { useState, useEffect, useRef } from "react";
 import Peer from "peerjs";
 
 export default function Call() {
-  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
-  const PEER_HOST = import.meta.env.VITE_PEER_HOST || "localhost";
-  const PEER_PORT = Number(import.meta.env.VITE_PEER_PORT) || 5000;
-  const PEER_PATH = import.meta.env.VITE_PEER_PATH || "/peerjs";
-
   const [myId, setMyId] = useState("");
   const [remoteId, setRemoteId] = useState("");
   const [incomingCall, setIncomingCall] = useState(null);
@@ -369,7 +364,7 @@ export default function Call() {
   useEffect(() => {
     if (!registered) return;
     setLoading(true);
-    fetch(`${BACKEND_URL}/register`, {
+    fetch("http://localhost:5000/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username }),
@@ -379,9 +374,9 @@ export default function Call() {
         if (data.peerId) {
           setMyId(data.peerId);
           const peer = new Peer(data.peerId, {
-            host: PEER_HOST,
-            port: PEER_PORT,
-            path: PEER_PATH,
+            host: "localhost",
+            port: 5000,
+            path: "/peerjs",
           });
           peerRef.current = peer;
           peer.on("open", (id) => {
@@ -438,8 +433,8 @@ export default function Call() {
     const mediaOptions = callType === "video" ? { video: true, audio: true } : { video: false, audio: true };
     let stream = streamRef.current || (await navigator.mediaDevices.getUserMedia(mediaOptions));
     // Apply enhancements
-    if (noiseSuppression) stream = await enhanceAudioStream(stream);
-    if (backgroundBlur && callType === "video") stream = await enhanceVideoStream(stream);
+    // if (noiseSuppression) stream = await enhanceAudioStream(stream);
+    // if (backgroundBlur && callType === "video") stream = await enhanceVideoStream(stream);
     streamRef.current = stream;
     if (callType === "video") myVideo.current.srcObject = stream;
     const call = peerRef.current.call(remoteId, stream);
@@ -556,6 +551,14 @@ export default function Call() {
     setIncomingCall(null);
   };
 
+  const saveSettings = () => {
+    if (tempUsername) {
+      setUsername(tempUsername);
+      localStorage.setItem("peerUsername", tempUsername);
+    }
+    setSettingsOpen(false);
+  };
+
   if (!registered) {
     // Handler for random call
     const handleRandomCall = async () => {
@@ -564,9 +567,9 @@ export default function Call() {
       setMyId(randomId);
       // Create Peer instance
       const peer = new Peer(randomId, {
-        host: PEER_HOST,
-        port: PEER_PORT,
-        path: PEER_PATH,
+        host: "localhost",
+        port: 5000,
+        path: "/peerjs",
       });
       peerRef.current = peer;
       peer.on("open", (id) => {
