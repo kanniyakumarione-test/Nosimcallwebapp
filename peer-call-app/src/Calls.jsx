@@ -123,8 +123,6 @@ export default function Call() {
   const [annotateMode, setAnnotateMode] = useState(false);
   const [drawColor, setDrawColor] = useState("#ff0000");
   const canvasRef = useRef(null);
-          const conn = peerRef.current.connect(remoteId);
-          setupDataConnection(conn);
 
   // Drawing handlers
   const handleMouseDown = (e) => {
