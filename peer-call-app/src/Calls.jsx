@@ -378,8 +378,8 @@ export default function Call() {
           const peer = new Peer(data.peerId, {
             host: import.meta.env.VITE_PEER_HOST || window.location.hostname,
             port: import.meta.env.VITE_PEER_PORT || 5000,
-            path: "/peerjs",
-            secure: false,
+            path: import.meta.env.VITE_PEER_PATH || "/peerjs",
+            secure: true,
           });
           peerRef.current = peer;
           peer.on("open", (id) => {
@@ -572,8 +572,8 @@ export default function Call() {
       const peer = new Peer(randomId, {
         host: import.meta.env.VITE_PEER_HOST || window.location.hostname,
         port: import.meta.env.VITE_PEER_PORT || 5000,
-        path: "/peerjs",
-        secure: false,
+        path: import.meta.env.VITE_PEER_PATH || "/peerjs",
+        secure: true,
       });
       peerRef.current = peer;
       peer.on("open", (id) => {
