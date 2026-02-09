@@ -326,25 +326,27 @@ export default function Call() {
 
   // Screen sharing handler
   const shareScreen = async () => {
+    if (!activeCallRef.current || callType !== "video") {
+      alert("Screen sharing is only available during an active video call.");
+      return;
+    }
     try {
       const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-      if (activeCallRef.current) {
-        // Replace video track in current stream
-        const sender = activeCallRef.current.peerConnection.getSenders().find(s => s.track && s.track.kind === "video");
-        if (sender) {
-          sender.replaceTrack(screenStream.getVideoTracks()[0]);
-        }
+      const sender = activeCallRef.current.peerConnection.getSenders().find(s => s.track && s.track.kind === "video");
+      if (sender) {
+        await sender.replaceTrack(screenStream.getVideoTracks()[0]);
+        myVideo.current.srcObject = screenStream;
+      } else {
+        alert("No video sender found. Try restarting the call.");
+        return;
       }
-      myVideo.current.srcObject = screenStream;
       // When screen sharing stops, revert to camera
       screenStream.getVideoTracks()[0].addEventListener("ended", async () => {
-        const mediaOptions = callType === "video" ? { video: true, audio: true } : { video: false, audio: true };
+        const mediaOptions = { video: true, audio: true };
         const camStream = await navigator.mediaDevices.getUserMedia(mediaOptions);
-        if (activeCallRef.current) {
-          const sender = activeCallRef.current.peerConnection.getSenders().find(s => s.track && s.track.kind === "video");
-          if (sender) {
-            sender.replaceTrack(camStream.getVideoTracks()[0]);
-          }
+        const sender = activeCallRef.current && activeCallRef.current.peerConnection.getSenders().find(s => s.track && s.track.kind === "video");
+        if (sender) {
+          await sender.replaceTrack(camStream.getVideoTracks()[0]);
         }
         myVideo.current.srcObject = camStream;
       });
