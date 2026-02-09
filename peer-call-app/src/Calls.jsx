@@ -63,6 +63,38 @@ export default function Call() {
       const stored = localStorage.getItem("peerScheduledCalls");
       return stored ? JSON.parse(stored) : [];
     });
+        // Helper to setup data connection for chat and signaling
+        function setupDataConnection(conn) {
+          setDataConn(conn);
+          conn.on("data", async (data) => {
+            if (data && data.type === "declined") {
+              setCallStatus("Call was declined by remote peer");
+              addCallHistory({
+                peer: conn.peer,
+                type: callType,
+                status: "declined",
+                time: new Date().toLocaleString(),
+              });
+            } else if (data && data.type === "end") {
+              setCallStatus("Call ended by remote peer");
+              if (activeCallRef.current) activeCallRef.current.close();
+              activeCallRef.current = null;
+              addCallHistory({
+                peer: conn.peer,
+                type: "incoming",
+                status: "ended",
+                time: new Date().toLocaleString(),
+              });
+            } else if (data && data.type === "chat" && data.encMsg && encryptionKey) {
+              try {
+                const msg = await decryptMessage(data.encMsg, encryptionKey);
+                setChatMessages((msgs) => [...msgs, { sender: "remote", text: msg, time: new Date().toLocaleTimeString() }]);
+              } catch (e) {
+                setChatMessages((msgs) => [...msgs, { sender: "remote", text: "[Decryption failed]", time: new Date().toLocaleTimeString() }]);
+              }
+            }
+          });
+        }
     const [schedulePeer, setSchedulePeer] = useState("");
     const [scheduleDate, setScheduleDate] = useState("");
     const [scheduleTime, setScheduleTime] = useState("");
@@ -91,7 +123,8 @@ export default function Call() {
   const [annotateMode, setAnnotateMode] = useState(false);
   const [drawColor, setDrawColor] = useState("#ff0000");
   const canvasRef = useRef(null);
-  const [drawing, setDrawing] = useState(false);
+          const conn = peerRef.current.connect(remoteId);
+          setupDataConnection(conn);
 
   // Drawing handlers
   const handleMouseDown = (e) => {
