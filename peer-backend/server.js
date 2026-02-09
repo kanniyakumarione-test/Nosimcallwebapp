@@ -1,3 +1,4 @@
+
 const express = require("express");
 const http = require("http");
 const cors = require("cors");
@@ -6,6 +7,26 @@ const { MongoClient, ObjectId } = require("mongodb");
 
 const app = express();
 const server = http.createServer(app);
+// --- Presence API ---
+// In-memory presence map: { peerId: lastPingTimestamp }
+const presenceMap = {};
+
+// Client pings this endpoint to show they're online
+app.post("/presence/ping", (req, res) => {
+  const { peerId } = req.body;
+  if (!peerId) return res.status(400).json({ error: "Peer ID required" });
+  presenceMap[peerId] = Date.now();
+  return res.json({ success: true });
+});
+
+// Query if a peer is online (active ping within 20s)
+app.get("/presence/online", (req, res) => {
+  const { peerId } = req.query;
+  if (!peerId) return res.status(400).json({ error: "Peer ID required" });
+  const lastPing = presenceMap[peerId];
+  const isOnline = lastPing && (Date.now() - lastPing < 20000);
+  return res.json({ online: !!isOnline });
+});
 
 app.use(cors());
 app.use(express.json());

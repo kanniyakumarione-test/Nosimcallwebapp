@@ -318,24 +318,14 @@ export default function Call() {
 
   // Check remote peer status
   const checkRemoteStatus = async () => {
-    if (!remoteId || !peerRef.current) {
+    if (!remoteId) {
       setRemoteStatus("");
       return;
     }
     try {
-      // Try to connect (without sending call)
-      const conn = peerRef.current.connect(remoteId);
-      if (!conn) return;
-      conn.on("open", () => {
-        setRemoteStatus("online");
-        conn.close();
-      });
-      conn.on("error", () => {
-        setRemoteStatus("offline");
-      });
-      setTimeout(() => {
-        if (!conn.open) setRemoteStatus("offline");
-      }, 2000);
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || ""}/presence/online?peerId=${remoteId}`);
+      const data = await res.json();
+      setRemoteStatus(data.online ? "online" : "offline");
     } catch {
       setRemoteStatus("offline");
     }
@@ -343,6 +333,8 @@ export default function Call() {
 
   useEffect(() => {
     checkRemoteStatus();
+    const interval = setInterval(checkRemoteStatus, 10000); // poll every 10s
+    return () => clearInterval(interval);
     // eslint-disable-next-line
   }, [remoteId, registered]);
 
